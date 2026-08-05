@@ -73,6 +73,28 @@ just deploy
 
 The Worker runs every 5 minutes and writes the latest topics to KV. Pages reads that cached JSON at `/topics.json` and renders a no-JavaScript view at `/html`.
 
+## Self-hosted Docker Compose
+
+Docker Compose runs the Pages app and a small refresh service locally, using a persistent local KV volume instead of Cloudflare. The first refresh runs after the app is ready, and subsequent refreshes run every 10 minutes by default.
+
+From the repository root:
+
+```sh
+docker compose up
+```
+
+Open <http://localhost:8788>. The cache survives container restarts in the `rfd-state` volume. Use `docker compose down -v` only when you also want to remove the cached topics.
+
+The defaults can be overridden with environment variables or a `.env` file:
+
+```text
+RFD_PORT=8788
+RFD_REFRESH_SECRET=local
+RFD_REFRESH_INTERVAL_SECONDS=600
+RFD_BASE_URL=https://forums.redflagdeals.com
+REDIRECTS_URL=https://raw.githubusercontent.com/davegallant/rfd-redirect-stripper/main/redirects.json
+```
+
 Optional manual refresh endpoints:
 
 ```sh
