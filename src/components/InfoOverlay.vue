@@ -22,6 +22,10 @@
             <td>Sort by column</td>
           </tr>
           <tr>
+            <td><strong>Status</strong></td>
+            <td>Fresh ≤24h · Active ≤7d · Aging ≤30d · Stale &gt;30d</td>
+          </tr>
+          <tr>
             <td><strong>t</strong></td>
             <td>Toggle theme</td>
           </tr>

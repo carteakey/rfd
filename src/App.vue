@@ -3,6 +3,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 
+import { formatDealAge, getFreshnessStatus } from "./dealMeta.js";
 import { getFilteredSortedTopics, parseFilterTerm } from "./filterTopics.js";
 import { loadUiPreferences, persistUiPreferences, SORT_METHOD_KEYS } from "./preferences.js";
 import { seen, markSeen, markUnseen, isSeen, markAllSeen, clearSeen } from "./composables/useSeenDeals.js";
@@ -149,6 +150,12 @@ export default {
 
     formatCount(value) {
       return Number(value || 0).toLocaleString("en-CA");
+    },
+
+    formatDealAge,
+
+    freshnessStatus(topic) {
+      return getFreshnessStatus(topic.last_post_time || topic.post_time);
     },
 
     highlightText(text) {
@@ -617,6 +624,8 @@ export default {
                   <col class="deal-table__col-number" />
                   <col class="deal-table__col-date" />
                   <col class="deal-table__col-date" />
+                  <col class="deal-table__col-status" />
+                  <col class="deal-table__col-age" />
                   <col class="deal-table__col-links" />
                 </colgroup>
                 <thead>
@@ -656,6 +665,8 @@ export default {
                         Last reply <span class="table-sort-indicator">{{ sortIndicator('post_time') }}</span>
                       </button>
                     </th>
+                    <th scope="col" title="Fresh: ≤24h · Active: ≤7d · Aging: ≤30d · Stale: &gt;30d">Status</th>
+                    <th scope="col" title="Time since original post">Age</th>
                     <th scope="col" class="deal-table__links">Links</th>
                   </tr>
                 </thead>
@@ -707,6 +718,13 @@ export default {
                     <td class="deal-table__number">{{ formatCount(topic.total_views) }}</td>
                     <td class="deal-table__date" :title="formatDate(topic.post_time)">{{ formatTableDate(topic.post_time) }}</td>
                     <td class="deal-table__date" :title="formatDate(topic.last_post_time)">{{ formatTableDate(topic.last_post_time) }}</td>
+                    <td class="deal-table__status" :title="freshnessStatus(topic).description">
+                      <span class="freshness-indicator" :class="`freshness-indicator--${freshnessStatus(topic).key}`">
+                        <span class="freshness-dot" aria-hidden="true"></span>
+                        {{ freshnessStatus(topic).label }}
+                      </span>
+                    </td>
+                    <td class="deal-table__age" :title="`Posted ${formatDate(topic.post_time)}`">{{ formatDealAge(topic.post_time) }}</td>
                     <td class="deal-table__links">
                       <a
                         :href="`https://forums.redflagdeals.com${topic.web_path}`"

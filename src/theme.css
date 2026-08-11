@@ -471,7 +471,7 @@ a:visited {
 
 .deal-table {
   width: 100%;
-  min-width: 930px;
+  min-width: 1050px;
   border-collapse: collapse;
   table-layout: fixed;
   color: var(--text-primary);
@@ -484,6 +484,8 @@ a:visited {
 .deal-table__col-dealer { width: 150px; }
 .deal-table__col-number { width: 72px; }
 .deal-table__col-date { width: 112px; }
+.deal-table__col-status { width: 80px; }
+.deal-table__col-age { width: 64px; }
 .deal-table__col-links { width: 70px; }
 
 .deal-table th {
@@ -553,6 +555,16 @@ a:visited {
   white-space: nowrap;
 }
 
+.deal-table__status,
+.deal-table__age {
+  white-space: nowrap;
+}
+
+.deal-table__age {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 .deal-table__links {
   text-align: center;
   white-space: nowrap;
@@ -561,6 +573,30 @@ a:visited {
 .deal-table__muted {
   color: var(--text-secondary);
 }
+
+.freshness-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.freshness-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-secondary);
+}
+
+.freshness-indicator--fresh { color: var(--score-positive-text); }
+.freshness-indicator--fresh .freshness-dot { background-color: var(--score-positive-text); }
+.freshness-indicator--active { color: var(--accent); }
+.freshness-indicator--active .freshness-dot { background-color: var(--accent); }
+.freshness-indicator--aging { color: var(--score-negative-text); }
+.freshness-indicator--aging .freshness-dot { background-color: var(--score-negative-text); }
+.freshness-indicator--stale,
+.freshness-indicator--unknown { color: var(--text-secondary); }
 
 .hot-deal-icon {
   display: inline-block;
@@ -715,7 +751,7 @@ mark {
   }
 
   .deal-table {
-    min-width: 860px;
+    min-width: 980px;
   }
 
   .deal-table th,
