@@ -33,6 +33,7 @@ describe("getFreshnessStatus", () => {
     expect(getFreshnessStatus(undefined, NOW)).toEqual({
       key: "unknown",
       label: "Unknown",
+      icon: "help_outline",
       description: "No activity timestamp available",
     });
   });

@@ -26,6 +26,10 @@
             <td>Fresh ≤24h · Active ≤7d · Aging ≤30d · Stale &gt;30d</td>
           </tr>
           <tr>
+            <td><strong>Archive icon</strong></td>
+            <td>Hide or restore an individual deal</td>
+          </tr>
+          <tr>
             <td><strong>t</strong></td>
             <td>Toggle theme</td>
           </tr>

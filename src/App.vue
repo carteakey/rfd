@@ -6,6 +6,7 @@ import utc from "dayjs/plugin/utc";
 import { formatDealAge, getFreshnessStatus } from "./dealMeta.js";
 import { getFilteredSortedTopics, parseFilterTerm } from "./filterTopics.js";
 import { loadUiPreferences, persistUiPreferences, SORT_METHOD_KEYS } from "./preferences.js";
+import { archived, archiveDeal, unarchiveDeal, isArchived, clearArchived } from "./composables/useArchivedDeals.js";
 import { seen, markSeen, markUnseen, isSeen, markAllSeen, clearSeen } from "./composables/useSeenDeals.js";
 import InfoOverlay from "./components/InfoOverlay.vue";
 
@@ -22,7 +23,18 @@ export default {
   },
 
   setup() {
-    return { seen, markSeen, markUnseen, markAllSeen, clearSeen };
+    return {
+      seen,
+      markSeen,
+      markUnseen,
+      markAllSeen,
+      clearSeen,
+      archived,
+      archiveDeal,
+      unarchiveDeal,
+      isArchived,
+      clearArchived,
+    };
   },
 
   data() {
@@ -41,6 +53,8 @@ export default {
       infoOverlayVisible: false,
       hideSeen: loadUiPreferences().hideSeen,
       seenDropdownOpen: false,
+      hideArchived: true,
+      archivedDropdownOpen: false,
       visibleTopicCount: TOPICS_BATCH_SIZE,
       refreshIntervalId: null,
     };
@@ -88,15 +102,23 @@ export default {
       persistUiPreferences({ ...loadUiPreferences(), hideSeen: val });
       this.resetVisibleTopics();
     },
+
+    hideArchived() {
+      this.resetVisibleTopics();
+    },
   },
 
   computed: {
     filteredTopics() {
       const base = getFilteredSortedTopics(this.topics, this.activeFilters, this.sortMethod);
-      if (!this.hideSeen) return base;
       // Access seen.value so Vue tracks reactivity
       const seenMap = this.seen;
-      return base.filter(t => !seenMap.has(String(t.topic_id)));
+      const archivedMap = this.archived;
+      return base.filter((topic) => {
+        const isHiddenSeen = this.hideSeen && seenMap.has(String(topic.topic_id));
+        const isHiddenArchived = this.hideArchived && archivedMap.has(String(topic.topic_id));
+        return !isHiddenSeen && !isHiddenArchived;
+      });
     },
 
     displayedTopics() {
@@ -440,6 +462,10 @@ export default {
       this.seenDropdownOpen = !this.seenDropdownOpen;
     },
 
+    toggleArchivedDropdown() {
+      this.archivedDropdownOpen = !this.archivedDropdownOpen;
+    },
+
     toggleMenu() {
       this.menuOpen = !this.menuOpen;
     },
@@ -459,6 +485,9 @@ export default {
       }
       if (this.seenDropdownOpen && !event.target.closest('.seen-dropdown-wrapper')) {
         this.seenDropdownOpen = false;
+      }
+      if (this.archivedDropdownOpen && !event.target.closest('.archived-dropdown-wrapper')) {
+        this.archivedDropdownOpen = false;
       }
     },
 
@@ -488,6 +517,18 @@ export default {
 
     handleClearSeen() {
       this.clearSeen();
+    },
+
+    toggleArchive(topic) {
+      if (this.isArchived(topic.topic_id)) {
+        this.unarchiveDeal(topic.topic_id);
+      } else {
+        this.archiveDeal(topic.topic_id);
+      }
+    },
+
+    handleClearArchived() {
+      this.clearArchived();
     },
   },
 };
@@ -542,6 +583,21 @@ export default {
               </button>
             </div>
           </div>
+          <div class="archived-dropdown-wrapper desktop-only">
+            <button class="icon-button" :class="{ active: hideArchived }" title="Archived deals" @click="toggleArchivedDropdown">
+              <span class="material-symbols-outlined">{{ hideArchived ? 'archive' : 'inventory_2' }}</span>
+            </button>
+            <div class="seen-dropdown" v-if="archivedDropdownOpen" @click.stop>
+              <button class="dropdown-item" :class="{ active: hideArchived }" @click="hideArchived = !hideArchived; archivedDropdownOpen = false">
+                <span class="material-symbols-outlined">{{ hideArchived ? 'unarchive' : 'archive' }}</span>
+                <span>{{ hideArchived ? 'Show archived' : 'Hide archived' }}</span>
+              </button>
+              <button class="dropdown-item" @click="handleClearArchived(); archivedDropdownOpen = false" :disabled="archived.size === 0">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <span>Unarchive all</span>
+              </button>
+            </div>
+          </div>
           <button class="icon-button desktop-only" :title="themeTitle" @click="toggleTheme">
             <span class="material-symbols-outlined">{{ themeIcon }}</span>
           </button>
@@ -582,6 +638,16 @@ export default {
               <button class="dropdown-item" @click="handleMenuAction(handleClearSeen)" :disabled="seen.size === 0">
                 <span class="material-symbols-outlined">ink_eraser</span>
                 <span>Clear seen</span>
+              </button>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-section-label">Archived deals</div>
+              <button class="dropdown-item" :class="{ active: hideArchived }" @click="handleMenuAction(() => { hideArchived = !hideArchived })">
+                <span class="material-symbols-outlined">{{ hideArchived ? 'unarchive' : 'archive' }}</span>
+                <span>{{ hideArchived ? 'Show archived' : 'Hide archived' }}</span>
+              </button>
+              <button class="dropdown-item" @click="handleMenuAction(handleClearArchived)" :disabled="archived.size === 0">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <span>Unarchive all</span>
               </button>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item" @click="handleMenuAction(toggleInfoOverlay)">
@@ -677,6 +743,7 @@ export default {
                     class="deal-row"
                     :class="{
                       'deal-row--seen': seen.has(String(topic.topic_id)),
+                      'deal-row--archived': archived.has(String(topic.topic_id)),
                       'deal-row--hot': isHotDeal(topic),
                     }"
                     @click.capture="onDealClick(topic)"
@@ -720,7 +787,7 @@ export default {
                     <td class="deal-table__date" :title="formatDate(topic.last_post_time)">{{ formatTableDate(topic.last_post_time) }}</td>
                     <td class="deal-table__status" :title="freshnessStatus(topic).description">
                       <span class="freshness-indicator" :class="`freshness-indicator--${freshnessStatus(topic).key}`">
-                        <span class="freshness-dot" aria-hidden="true"></span>
+                        <span class="material-symbols-outlined freshness-icon" aria-hidden="true">{{ freshnessStatus(topic).icon }}</span>
                         {{ freshnessStatus(topic).label }}
                       </span>
                     </td>
@@ -745,6 +812,16 @@ export default {
                       >
                         <span class="material-symbols-outlined">open_in_new</span>
                       </a>
+                      <button
+                        class="table-icon-link table-action-button"
+                        :class="{ 'table-action-button--archived': isArchived(topic.topic_id) }"
+                        :title="isArchived(topic.topic_id) ? 'Unarchive deal' : 'Archive deal'"
+                        :aria-label="isArchived(topic.topic_id) ? 'Unarchive deal' : 'Archive deal'"
+                        :aria-pressed="isArchived(topic.topic_id)"
+                        @click.stop="toggleArchive(topic)"
+                      >
+                        <span class="material-symbols-outlined">{{ isArchived(topic.topic_id) ? 'unarchive' : 'archive' }}</span>
+                      </button>
                     </td>
                   </tr>
                 </tbody>
@@ -856,7 +933,8 @@ export default {
   box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.25) !important;
 }
 
-.seen-dropdown-wrapper {
+.seen-dropdown-wrapper,
+.archived-dropdown-wrapper {
   position: relative;
 }
 
