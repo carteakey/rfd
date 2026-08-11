@@ -91,9 +91,12 @@ The defaults can be overridden with environment variables or a `.env` file:
 RFD_PORT=8788
 RFD_REFRESH_SECRET=local
 RFD_REFRESH_INTERVAL_SECONDS=600
+RFD_REFRESH_PAGE_COUNT=25
 RFD_BASE_URL=https://forums.redflagdeals.com
 REDIRECTS_URL=https://raw.githubusercontent.com/davegallant/rfd-redirect-stripper/main/redirects.json
 ```
+
+`RFD_REFRESH_PAGE_COUNT` controls how far back the refresh reaches. Compose defaults to 25 pages (up to 1,000 deals), so older active deals remain available; the Cloudflare Worker keeps its CPU-safe default of 3 pages unless configured separately.
 
 Optional manual refresh endpoints:
 

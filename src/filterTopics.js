@@ -1,6 +1,7 @@
 /** Sort keys supported by the deals list (matches App sort options). */
 export const SORT_KEYS = [
   "title",
+  "dealer",
   "post_time",
   "thread_start",
   "score",
@@ -10,11 +11,12 @@ export const SORT_KEYS = [
 
 const SORT_FNS = {
   title: (a, b) => a.title.localeCompare(b.title),
+  dealer: (a, b) => (a.Offer?.dealer_name || "").localeCompare(b.Offer?.dealer_name || ""),
   post_time: (a, b) => new Date(b.last_post_time) - new Date(a.last_post_time),
   thread_start: (a, b) => new Date(b.post_time) - new Date(a.post_time),
-  score: (a, b) => b.score - a.score,
-  replies: (a, b) => b.total_replies - a.total_replies,
-  views: (a, b) => b.total_views - a.total_views,
+  score: (a, b) => (Number(b.score) || 0) - (Number(a.score) || 0),
+  replies: (a, b) => (Number(b.total_replies) || 0) - (Number(a.total_replies) || 0),
+  views: (a, b) => (Number(b.total_views) || 0) - (Number(a.total_views) || 0),
 };
 
 /** Regex that detects /pattern/flags syntax. */
@@ -64,7 +66,7 @@ export function filterTopicsByActiveFilters(topics, activeFilters) {
   if (activeFilters.length === 0) return topics;
   const parsed = activeFilters.map(parseFilterTerm);
   return topics.filter((row) => {
-    const searchText = `${row.title} [${row.Offer.dealer_name}]`;
+    const searchText = `${row.title} [${row.Offer?.dealer_name || ""}]`;
     return parsed.every(({ regex, literal }) => {
       if (regex) return regex.test(searchText);
       return searchText.toLowerCase().includes(literal);

@@ -9,6 +9,7 @@ export const DEFAULT_UI_PREFERENCES = {
 
 export const SORT_METHOD_KEYS = [
   "title",
+  "dealer",
   "post_time",
   "thread_start",
   "score",

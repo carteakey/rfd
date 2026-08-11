@@ -4,6 +4,7 @@ set -eu
 
 : "${REFRESH_SECRET:=local}"
 : "${RFD_BASE_URL:=https://forums.redflagdeals.com}"
+: "${RFD_REFRESH_PAGE_COUNT:=25}"
 : "${REDIRECTS_URL:=https://raw.githubusercontent.com/davegallant/rfd-redirect-stripper/main/redirects.json}"
 : "${WRANGLER_COMPATIBILITY_DATE:=2026-06-22}"
 
@@ -14,6 +15,7 @@ exec /app/node_modules/.bin/wrangler pages dev /app/dist \
   --kv TOPICS_KV \
   --binding "REFRESH_SECRET=${REFRESH_SECRET}" \
   --binding "RFD_BASE_URL=${RFD_BASE_URL}" \
+  --binding "RFD_REFRESH_PAGE_COUNT=${RFD_REFRESH_PAGE_COUNT}" \
   --binding "REDIRECTS_URL=${REDIRECTS_URL}" \
   --persist-to /app/.wrangler/state \
   --show-interactive-dev-session=false

@@ -141,6 +141,23 @@ describe("refreshTopics", () => {
     expect(fetchMock).toHaveBeenCalledWith("https://redirects.example.test/list.json", expect.any(Object));
   });
 
+  it("uses the configured refresh depth for self-hosted caches", async () => {
+    const fetchMock = vi.fn(async (url) => {
+      const requestUrl = String(url);
+      if (requestUrl.includes("redirects.json")) return jsonResponse([]);
+      return jsonResponse({ topics: [topic({ topic_id: pageFromUrl(requestUrl) })] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const refreshed = await refreshTopics({
+      TOPICS_KV: { get: vi.fn(), put: vi.fn() },
+      RFD_REFRESH_PAGE_COUNT: "25",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(26);
+    expect(refreshed).toHaveLength(25);
+  });
+
   it("does not overwrite KV when every deals request fails", async () => {
     const put = vi.fn();
     vi.stubGlobal("fetch", vi.fn(async () => new Response("nope", { status: 503 })));

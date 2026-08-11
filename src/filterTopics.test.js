@@ -193,6 +193,17 @@ describe("getFilteredSortedTopics", () => {
     const out = getFilteredSortedTopics(deals, [], "title");
     expect(out.map((d) => d.topic_id)).toEqual([2, 1]);
   });
+
+  it("sorts by dealer name", () => {
+    const deals = [
+      topic({ topic_id: 1, Offer: { dealer_name: "Zed" } }),
+      topic({ topic_id: 2, Offer: { dealer_name: "Amazon" } }),
+    ];
+
+    const out = getFilteredSortedTopics(deals, [], "dealer");
+
+    expect(out.map((d) => d.topic_id)).toEqual([2, 1]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -207,5 +218,14 @@ describe("sortTopics", () => {
     ];
     const out = sortTopics(deals, "not-a-real-method");
     expect(out.map((d) => d.topic_id)).toEqual([2, 1]);
+  });
+
+  it("handles topics without an offer while filtering", () => {
+    const deals = [
+      topic({ topic_id: 1, title: "Thread only", Offer: undefined }),
+      topic({ topic_id: 2, title: "Store deal", Offer: { dealer_name: "Store" } }),
+    ];
+
+    expect(filterTopicsByActiveFilters(deals, ["thread only"]).map((d) => d.topic_id)).toEqual([1]);
   });
 });

@@ -15,50 +15,6 @@ dayjs.extend(utc);
 const TOPICS_BATCH_SIZE = 100;
 const INFINITE_SCROLL_THRESHOLD_PX = 600;
 
-// Color palette for dealer labels - muted, visually distinct colors
-const DEALER_COLORS = [
-  { bg: '#e8eef4', border: '#5a7a9a', text: '#4a6a8a' },  // Muted Blue
-  { bg: '#ece8f0', border: '#7a6a8a', text: '#6a5a7a' },  // Muted Purple
-  { bg: '#e8f0e8', border: '#5a7a5a', text: '#4a6a4a' },  // Muted Green
-  { bg: '#f0ebe5', border: '#9a7a5a', text: '#8a6a4a' },  // Muted Orange
-  { bg: '#f0e8ec', border: '#8a5a6a', text: '#7a4a5a' },  // Muted Pink
-  { bg: '#e5efed', border: '#5a7a75', text: '#4a6a65' },  // Muted Teal
-  { bg: '#f0ede5', border: '#9a8a5a', text: '#8a7a4a' },  // Muted Amber
-  { bg: '#eaf0e8', border: '#6a8a5a', text: '#5a7a4a' },  // Muted Light Green
-  { bg: '#e8e9f0', border: '#5a5a8a', text: '#4a4a7a' },  // Muted Indigo
-  { bg: '#ece9e6', border: '#6a5a50', text: '#5a4a40' },  // Muted Brown
-  { bg: '#e5f0f0', border: '#5a8a8a', text: '#4a7a7a' },  // Muted Cyan
-  { bg: '#f0e8e5', border: '#9a6a5a', text: '#8a5a4a' },  // Muted Deep Orange
-];
-
-// Dark theme color palette - muted colors
-const DEALER_COLORS_DARK = [
-  { bg: '#2a3a4a', border: '#7a9ab0', text: '#9ab0c0' },  // Muted Blue
-  { bg: '#3a3040', border: '#9a8aaa', text: '#b0a0c0' },  // Muted Purple
-  { bg: '#2a3a2a', border: '#7a9a7a', text: '#9ab09a' },  // Muted Green
-  { bg: '#3a3025', border: '#a09070', text: '#b0a080' },  // Muted Orange
-  { bg: '#3a2a30', border: '#a07a8a', text: '#b09aa0' },  // Muted Pink
-  { bg: '#253a38', border: '#7a9a95', text: '#9ab0aa' },  // Muted Teal
-  { bg: '#3a3525', border: '#a09a70', text: '#b0aa80' },  // Muted Amber
-  { bg: '#2a3a25', border: '#8a9a7a', text: '#a0b090' },  // Muted Light Green
-  { bg: '#30304a', border: '#8a8aaa', text: '#a0a0c0' },  // Muted Indigo
-  { bg: '#352d28', border: '#8a7a70', text: '#a09a90' },  // Muted Brown
-  { bg: '#253a3a', border: '#7a9a9a', text: '#9ab0b0' },  // Muted Cyan
-  { bg: '#3a2a25', border: '#a08070', text: '#b09a8a' },  // Muted Deep Orange
-];
-
-// Simple hash function for consistent color assignment
-function hashString(str) {
-  let hash = 0;
-  const normalizedStr = str.toLowerCase().trim();
-  for (let i = 0; i < normalizedStr.length; i++) {
-    const char = normalizedStr.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash);
-}
-
 export default {
   components: {
     InfoOverlay,
@@ -74,7 +30,6 @@ export default {
       activeFilters: this.parseFiltersFromUrl(),
       sortMethod: "score",
       sortBySetByUser: false,
-      sortDropdownOpen: false,
       topics: [],
       isMobile: false,
       currentTheme: "auto",
@@ -172,6 +127,7 @@ export default {
     sortOptions() {
       return [
         { key: "title", label: "Title", icon: "sort_by_alpha" },
+        { key: "dealer", label: "Dealer", icon: "storefront" },
         { key: "post_time", label: "Last Reply", icon: "schedule" },
         { key: "thread_start", label: "Thread Start", icon: "event" },
         { key: "score", label: "Score", icon: "trending_up" },
@@ -180,15 +136,19 @@ export default {
       ];
     },
 
-    currentSortOption() {
-      return this.sortOptions.find(o => o.key === this.sortMethod) || this.sortOptions[3];
-    },
-
   },
 
   methods: {
     formatDate(dateString) {
       return dayjs(String(dateString)).format("YYYY-MM-DD hh:mm A");
+    },
+
+    formatTableDate(dateString) {
+      return dayjs(String(dateString)).format("MM-DD HH:mm");
+    },
+
+    formatCount(value) {
+      return Number(value || 0).toLocaleString("en-CA");
     },
 
     highlightText(text) {
@@ -455,17 +415,22 @@ export default {
     setSortMethod(method) {
       this.sortMethod = method;
       this.sortBySetByUser = true;
-      this.sortDropdownOpen = false;
       persistUiPreferences({ ...loadUiPreferences(), sortMethod: method });
       this.updateUrl();
     },
 
-    toggleSeenDropdown() {
-      this.seenDropdownOpen = !this.seenDropdownOpen;
+    sortIndicator(key) {
+      if (this.sortMethod !== key) return "";
+      return ["title", "dealer"].includes(key) ? "↑" : "↓";
     },
 
-    toggleSortDropdown() {
-      this.sortDropdownOpen = !this.sortDropdownOpen;
+    sortAriaSort(key) {
+      if (this.sortMethod !== key) return "none";
+      return ["title", "dealer"].includes(key) ? "ascending" : "descending";
+    },
+
+    toggleSeenDropdown() {
+      this.seenDropdownOpen = !this.seenDropdownOpen;
     },
 
     toggleMenu() {
@@ -485,32 +450,9 @@ export default {
       if (this.menuOpen && !event.target.closest('.mobile-menu-wrapper')) {
         this.closeMenu();
       }
-      if (this.sortDropdownOpen && !event.target.closest('.sort-dropdown-wrapper')) {
-        this.sortDropdownOpen = false;
-      }
       if (this.seenDropdownOpen && !event.target.closest('.seen-dropdown-wrapper')) {
         this.seenDropdownOpen = false;
       }
-    },
-
-    getDealerColor(dealerName) {
-      if (!dealerName) return null;
-      const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark' ||
-                     document.documentElement.classList.contains('dark-theme') ||
-                     (this.currentTheme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      const colors = isDark ? DEALER_COLORS_DARK : DEALER_COLORS;
-      const index = hashString(dealerName) % colors.length;
-      return colors[index];
-    },
-
-    getDealerStyle(dealerName) {
-      const color = this.getDealerColor(dealerName);
-      if (!color) return {};
-      return {
-        backgroundColor: color.bg,
-        borderColor: color.border,
-        color: color.text,
-      };
     },
 
     isHotDeal(topic) {
@@ -593,23 +535,6 @@ export default {
               </button>
             </div>
           </div>
-          <div class="sort-dropdown-wrapper desktop-only">
-            <button class="icon-button" :title="'Sort: ' + currentSortOption.label" @click="toggleSortDropdown">
-              <span class="material-symbols-outlined">sort</span>
-            </button>
-            <div class="sort-dropdown" v-if="sortDropdownOpen" @click.stop>
-              <button
-                v-for="opt in sortOptions"
-                :key="opt.key"
-                class="dropdown-item"
-                :class="{ active: sortMethod === opt.key }"
-                @click="setSortMethod(opt.key)"
-              >
-                <span class="material-symbols-outlined">{{ opt.icon }}</span>
-                <span>{{ opt.label }}</span>
-              </button>
-            </div>
-          </div>
           <button class="icon-button desktop-only" :title="themeTitle" @click="toggleTheme">
             <span class="material-symbols-outlined">{{ themeIcon }}</span>
           </button>
@@ -673,73 +598,144 @@ export default {
           <span class="material-symbols-outlined spinning loading-spinner">refresh</span>
         </div>
         <div class="list-view">
-        <div v-if="filteredTopics.length === 0" class="empty-state">
-          <span class="material-symbols-outlined">search_off</span>
-          <p>No deals match your filters.</p>
-          <button v-if="activeFilters.length > 0" class="empty-state-button" @click="clearAllFilters">
-            Clear filters
-          </button>
-        </div>
-        <template v-else>
-        <div
-          v-for="topic in displayedTopics"
-          :key="topic.topic_id"
-          class="deal-row"
-          :class="{
-            'deal-row--seen': seen.has(String(topic.topic_id)),
-            'deal-row--hot': isHotDeal(topic),
-          }"
-          @click.capture="onDealClick(topic)"
-        >
-          <div class="card-header">
-            <div class="title-with-link">
-              <span class="deal-text">
-                <span v-if="isHotDeal(topic)" class="hot-deal-icon" title="Hot deal" aria-label="Hot deal">🔥</span>
-                <button
-                  v-if="topic.Offer.dealer_name"
-                  class="dealer-name dealer-label dealer-label--clickable"
-                  :style="getDealerStyle(topic.Offer.dealer_name)"
-                  :title="`Filter by ${topic.Offer.dealer_name}`"
-                  @click="filterByDealer(topic.Offer.dealer_name)"
-                  v-html="highlightText(topic.Offer.dealer_name)"
-                ></button><span v-if="topic.Offer.dealer_name" class="dealer-title-gap" aria-hidden="true"></span>
-                <a
-                  :href="`https://forums.redflagdeals.com${topic.web_path}`"
-                  target="_blank"
-                  class="deal-title"
-                  v-html="highlightText(topic.title)"
-                ></a>
-              </span>
-              <a
-                v-if="topic.Offer.url"
-                :href="topic.Offer.url"
-                target="_blank"
-                class="card-link"
-                title="Open direct link to deal"
-              >
-                <span class="material-symbols-outlined">open_in_new</span>
-              </a>
-            </div>
-            <div
-              class="score-bubble"
-              :class="{
-                positive: topic.score > 0,
-                negative: topic.score < 0,
-                neutral: topic.score === 0,
-              }"
-            >
-              <span v-if="topic.score > 0">+{{ topic.score }}</span>
-              <span v-else>{{ topic.score }}</span>
-            </div>
+          <div v-if="filteredTopics.length === 0" class="empty-state">
+            <span class="material-symbols-outlined">search_off</span>
+            <p>No deals match your filters.</p>
+            <button v-if="activeFilters.length > 0" class="empty-state-button" @click="clearAllFilters">
+              Clear filters
+            </button>
           </div>
-          <div class="row-stats">
-            <span class="stat-compact">{{ formatDate(topic.post_time) }} - {{ formatDate(topic.last_post_time) }}</span>
-          </div>
-        </div>
-        <div v-if="hasMoreDisplayedTopics" class="load-more-status">
-          Showing {{ displayedTopics.length }} of {{ filteredTopics.length }} deals. Scroll for more.
-        </div>
-        </template>
+          <template v-else>
+            <div class="table-scroll" role="region" aria-label="Deal list" tabindex="0">
+              <table class="deal-table">
+                <caption class="sr-only">RedFlagDeals deals</caption>
+                <colgroup>
+                  <col class="deal-table__col-score" />
+                  <col class="deal-table__col-title" />
+                  <col class="deal-table__col-dealer" />
+                  <col class="deal-table__col-number" />
+                  <col class="deal-table__col-number" />
+                  <col class="deal-table__col-date" />
+                  <col class="deal-table__col-date" />
+                  <col class="deal-table__col-links" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col" :aria-sort="sortAriaSort('score')">
+                      <button class="table-sort-button" :class="{ active: sortMethod === 'score' }" title="Sort by score" @click="setSortMethod('score')">
+                        Score <span class="table-sort-indicator">{{ sortIndicator('score') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" :aria-sort="sortAriaSort('title')">
+                      <button class="table-sort-button" :class="{ active: sortMethod === 'title' }" title="Sort by title" @click="setSortMethod('title')">
+                        Deal <span class="table-sort-indicator">{{ sortIndicator('title') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" :aria-sort="sortAriaSort('dealer')">
+                      <button class="table-sort-button" :class="{ active: sortMethod === 'dealer' }" title="Sort by dealer" @click="setSortMethod('dealer')">
+                        Dealer <span class="table-sort-indicator">{{ sortIndicator('dealer') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" class="deal-table__number" :aria-sort="sortAriaSort('replies')">
+                      <button class="table-sort-button" :class="{ active: sortMethod === 'replies' }" title="Sort by replies" @click="setSortMethod('replies')">
+                        Replies <span class="table-sort-indicator">{{ sortIndicator('replies') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" class="deal-table__number" :aria-sort="sortAriaSort('views')">
+                      <button class="table-sort-button" :class="{ active: sortMethod === 'views' }" title="Sort by views" @click="setSortMethod('views')">
+                        Views <span class="table-sort-indicator">{{ sortIndicator('views') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" :aria-sort="sortAriaSort('thread_start')">
+                      <button class="table-sort-button" :class="{ active: sortMethod === 'thread_start' }" title="Sort by thread start" @click="setSortMethod('thread_start')">
+                        Posted <span class="table-sort-indicator">{{ sortIndicator('thread_start') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" :aria-sort="sortAriaSort('post_time')">
+                      <button class="table-sort-button" :class="{ active: sortMethod === 'post_time' }" title="Sort by last reply" @click="setSortMethod('post_time')">
+                        Last reply <span class="table-sort-indicator">{{ sortIndicator('post_time') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" class="deal-table__links">Links</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="topic in displayedTopics"
+                    :key="topic.topic_id"
+                    class="deal-row"
+                    :class="{
+                      'deal-row--seen': seen.has(String(topic.topic_id)),
+                      'deal-row--hot': isHotDeal(topic),
+                    }"
+                    @click.capture="onDealClick(topic)"
+                  >
+                    <td class="deal-table__score">
+                      <span
+                        class="score-bubble"
+                        :class="{
+                          positive: topic.score > 0,
+                          negative: topic.score < 0,
+                          neutral: topic.score === 0,
+                        }"
+                      >
+                        <span v-if="topic.score > 0">+{{ topic.score }}</span>
+                        <span v-else>{{ topic.score }}</span>
+                      </span>
+                    </td>
+                    <td class="deal-table__title">
+                      <span v-if="isHotDeal(topic)" class="hot-deal-icon" title="Hot deal" aria-label="Hot deal">🔥</span>
+                      <a
+                        :href="`https://forums.redflagdeals.com${topic.web_path}`"
+                        target="_blank"
+                        class="deal-title"
+                        :title="topic.title"
+                        v-html="highlightText(topic.title)"
+                      ></a>
+                    </td>
+                    <td class="deal-table__dealer">
+                      <button
+                        v-if="topic.Offer?.dealer_name"
+                        class="deal-table__dealer-button"
+                        :title="`Filter by ${topic.Offer.dealer_name}`"
+                        @click="filterByDealer(topic.Offer.dealer_name)"
+                        v-html="highlightText(topic.Offer.dealer_name)"
+                      ></button>
+                      <span v-else class="deal-table__muted">—</span>
+                    </td>
+                    <td class="deal-table__number">{{ formatCount(topic.total_replies) }}</td>
+                    <td class="deal-table__number">{{ formatCount(topic.total_views) }}</td>
+                    <td class="deal-table__date" :title="formatDate(topic.post_time)">{{ formatTableDate(topic.post_time) }}</td>
+                    <td class="deal-table__date" :title="formatDate(topic.last_post_time)">{{ formatTableDate(topic.last_post_time) }}</td>
+                    <td class="deal-table__links">
+                      <a
+                        :href="`https://forums.redflagdeals.com${topic.web_path}`"
+                        target="_blank"
+                        class="table-icon-link"
+                        title="Open thread"
+                        aria-label="Open thread"
+                      >
+                        <span class="material-symbols-outlined">forum</span>
+                      </a>
+                      <a
+                        v-if="topic.Offer?.url"
+                        :href="topic.Offer.url"
+                        target="_blank"
+                        class="table-icon-link"
+                        title="Open offer"
+                        aria-label="Open offer"
+                      >
+                        <span class="material-symbols-outlined">open_in_new</span>
+                      </a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="hasMoreDisplayedTopics" class="load-more-status">
+              Showing {{ displayedTopics.length }} of {{ filteredTopics.length }} deals. Scroll for more.
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -748,23 +744,6 @@ export default {
   </template>
 
 <style scoped>
-.sort-dropdown-wrapper {
-  position: relative;
-}
-
-.sort-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color-light);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px var(--shadow-medium);
-  min-width: 170px;
-  z-index: 100;
-  overflow: hidden;
-}
-
 .cards-wrapper {
   position: relative;
 }
@@ -857,30 +836,6 @@ export default {
 .search-input--regex-error {
   border-color: #c0392b !important;
   box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.25) !important;
-}
-
-.dealer-label--clickable {
-  /* reset button chrome */
-  appearance: none;
-  border: none;
-  padding: 0;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.2;
-  cursor: pointer;
-  /* subtle interactive cue */
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 2px;
-  transition: opacity 0.15s ease, box-shadow 0.15s ease;
-}
-
-.dealer-label--clickable:hover,
-.dealer-label--clickable:focus-visible {
-  opacity: 0.8;
-  box-shadow: 0 0 0 2px currentColor;
-  outline: none;
 }
 
 .seen-dropdown-wrapper {

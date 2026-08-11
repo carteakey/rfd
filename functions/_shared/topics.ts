@@ -3,7 +3,8 @@ const REFRESH_STATUS_KEY = "refresh-status.json";
 const RFD_FORUM_BASE = "https://forums.redflagdeals.com";
 const DEFAULT_REDIRECTS_URL = "https://raw.githubusercontent.com/davegallant/rfd-redirect-stripper/main/redirects.json";
 const DEALS_FETCH_CONCURRENCY = 5;
-const REFRESHED_HOT_DEALS_PAGE_COUNT = 3;
+const DEFAULT_REFRESHED_HOT_DEALS_PAGE_COUNT = 3;
+const MAX_REFRESHED_HOT_DEALS_PAGE_COUNT = 25;
 const MAX_STORED_TOPIC_COUNT = 1000;
 
 export interface Env {
@@ -12,6 +13,7 @@ export interface Env {
     put(key: string, value: string): Promise<void>;
   };
   RFD_BASE_URL?: string;
+  RFD_REFRESH_PAGE_COUNT?: string;
   REDIRECTS_URL?: string;
 }
 
@@ -85,7 +87,8 @@ export async function readRefreshStatusJson(env: Env): Promise<string> {
 }
 
 export async function refreshTopics(env: Env): Promise<Topic[]> {
-  let refreshedTopics = await getDeals(env, 9, 1, REFRESHED_HOT_DEALS_PAGE_COUNT + 1);
+  const refreshPageCount = getRefreshPageCount(env);
+  let refreshedTopics = await getDeals(env, 9, 1, refreshPageCount + 1);
 
   if (refreshedTopics.length === 0) {
     return [];
@@ -107,6 +110,14 @@ export async function refreshTopics(env: Env): Promise<Topic[]> {
     completed_at: new Date().toISOString(),
   });
   return topics;
+}
+
+function getRefreshPageCount(env: Env): number {
+  const configured = Number.parseInt(env.RFD_REFRESH_PAGE_COUNT ?? "", 10);
+  if (!Number.isInteger(configured) || configured <= 0) {
+    return DEFAULT_REFRESHED_HOT_DEALS_PAGE_COUNT;
+  }
+  return Math.min(configured, MAX_REFRESHED_HOT_DEALS_PAGE_COUNT);
 }
 
 async function writeRefreshStatus(env: Env, status: RefreshStatus): Promise<void> {

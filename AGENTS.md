@@ -13,7 +13,7 @@ Compact, actionable rules for automated agents and contributors.
   - `TOPICS_KV` is the KV binding used by both Pages Functions and the Worker.
   - `REFRESH_SECRET` optionally protects manual refresh endpoints.
   - `RFD_BASE_URL` and `REDIRECTS_URL` can override fetch targets for the Worker/Functions.
-  - `RFD_PORT`, `RFD_REFRESH_SECRET`, and `RFD_REFRESH_INTERVAL_SECONDS` configure the self-hosted Compose deployment.
+  - `RFD_PORT`, `RFD_REFRESH_SECRET`, `RFD_REFRESH_INTERVAL_SECONDS`, and `RFD_REFRESH_PAGE_COUNT` configure the self-hosted Compose deployment.
   - `VERSION` is read by Vite at build time and injected as `__APP_VERSION__`. Updating `VERSION` requires rebuilding the frontend to take effect.
 
 - Cloudflare behavior and gotchas an agent might miss:

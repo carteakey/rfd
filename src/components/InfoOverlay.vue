@@ -18,6 +18,10 @@
             <td>Cycle sort method</td>
           </tr>
           <tr>
+            <td><strong>Table headers</strong></td>
+            <td>Sort by column</td>
+          </tr>
+          <tr>
             <td><strong>t</strong></td>
             <td>Toggle theme</td>
           </tr>
