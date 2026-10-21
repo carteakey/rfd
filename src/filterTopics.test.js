@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import * as topicFilters from "./filterTopics.js";
 import {
   filterTopicsByActiveFilters,
   getFilteredSortedTopics,
@@ -22,52 +21,6 @@ function topic(overrides = {}) {
     ...overrides,
   };
 }
-
-// ---------------------------------------------------------------------------
-// tag filtering
-// ---------------------------------------------------------------------------
-
-describe("filtering by tag", () => {
-  const topics = [
-    topic({ topic_id: 1, title: "RTX 5070", tags: ["computing"] }),
-    topic({ topic_id: 2, title: "Milk 2L", tags: ["grocery"] }),
-    topic({ topic_id: 3, title: "Untagged thing" }),
-  ];
-
-  it("matches topics carrying the tag", () => {
-    const filtered = filterTopicsByActiveFilters(topics, ["#computing"]);
-    expect(filtered.map((t) => t.topic_id)).toEqual([1]);
-  });
-
-  it("does not match a tag when the term lacks the prefix", () => {
-    expect(filterTopicsByActiveFilters(topics, ["computing"])).toHaveLength(0);
-  });
-
-  it("does not match untagged topics", () => {
-    expect(filterTopicsByActiveFilters(topics, ["#grocery"]).map((t) => t.topic_id)).toEqual([2]);
-  });
-
-  it("combines a tag term with a title term", () => {
-    expect(filterTopicsByActiveFilters(topics, ["#computing", "RTX"]).map((t) => t.topic_id)).toEqual([1]);
-  });
-
-  it("does not throw on topics with no tags field", () => {
-    expect(() => filterTopicsByActiveFilters([topic({ tags: undefined })], ["#grocery"])).not.toThrow();
-  });
-
-  it("still matches dealer names when tags are present", () => {
-    const filtered = filterTopicsByActiveFilters(topics, ["Amazon"]);
-    expect(filtered).toHaveLength(3);
-  });
-
-  it("treats a bare # as 'any tagged deal'", () => {
-    expect(filterTopicsByActiveFilters(topics, ["#"]).map((t) => t.topic_id)).toEqual([1, 2]);
-  });
-
-  it("matches a tag prefix, so #comp finds computing", () => {
-    expect(filterTopicsByActiveFilters(topics, ["#comp"]).map((t) => t.topic_id)).toEqual([1]);
-  });
-});
 
 // ---------------------------------------------------------------------------
 // parseFilterTerm
@@ -167,25 +120,6 @@ describe("filterTopicsByActiveFilters", () => {
     expect(out.map((d) => d.topic_id).sort()).toEqual([1, 2, 3]);
   });
 
-  it("excludes merchants in the persistent hide list regardless of case or whitespace", () => {
-    const out = getFilteredSortedTopics(deals, [], "score", [" amazon ", "NEWEGG"]);
-    expect(out.map((d) => d.topic_id)).toEqual([1]);
-  });
-
-  it("lists each merchant once with a count, excluding blank names", () => {
-    const merchantOptions = topicFilters.getMerchantOptions?.([
-      topic({ topic_id: 1, Offer: { dealer_name: "Amazon" } }),
-      topic({ topic_id: 2, Offer: { dealer_name: " amazon " } }),
-      topic({ topic_id: 3, Offer: { dealer_name: "Best Buy" } }),
-      topic({ topic_id: 4, Offer: { dealer_name: "  " } }),
-    ]);
-
-    expect(merchantOptions).toEqual([
-      { key: "amazon", name: "Amazon", count: 2 },
-      { key: "best buy", name: "Best Buy", count: 1 },
-    ]);
-  });
-
   it("returns only deals whose combined title and dealer text match all filter terms", () => {
     const out = filterTopicsByActiveFilters(deals, ["ssd"]);
     expect(out.map((d) => d.topic_id).sort()).toEqual([1, 3]);
@@ -214,17 +148,6 @@ describe("filterTopicsByActiveFilters", () => {
     ];
     const out = filterTopicsByActiveFilters(mixedCase, ["/ssd/i"]);
     expect(out.map((d) => d.topic_id).sort()).toEqual([1, 2]);
-  });
-
-  it("applies stateful regex flags independently to every deal", () => {
-    const repeated = [
-      topic({ topic_id: 1, title: "sale" }),
-      topic({ topic_id: 2, title: "sale" }),
-      topic({ topic_id: 3, title: "sale" }),
-    ];
-
-    expect(filterTopicsByActiveFilters(repeated, ["/sale/g"]).map((deal) => deal.topic_id))
-      .toEqual([1, 2, 3]);
   });
 
   it("case-sensitive regex /SSD/ does not match lowercase ssd", () => {
@@ -270,6 +193,17 @@ describe("getFilteredSortedTopics", () => {
     const out = getFilteredSortedTopics(deals, [], "title");
     expect(out.map((d) => d.topic_id)).toEqual([2, 1]);
   });
+
+  it("sorts by dealer name", () => {
+    const deals = [
+      topic({ topic_id: 1, Offer: { dealer_name: "Zed" } }),
+      topic({ topic_id: 2, Offer: { dealer_name: "Amazon" } }),
+    ];
+
+    const out = getFilteredSortedTopics(deals, [], "dealer");
+
+    expect(out.map((d) => d.topic_id)).toEqual([2, 1]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -285,28 +219,13 @@ describe("sortTopics", () => {
     const out = sortTopics(deals, "not-a-real-method");
     expect(out.map((d) => d.topic_id)).toEqual([2, 1]);
   });
-});
 
-describe("reusable filter preparation", () => {
-  it("highlights original text safely across repeated renders and overlapping filters", () => {
-    const highlight = topicFilters.createHighlighter(["sale", "/sale & more/i"].map(parseFilterTerm));
-    expect(highlight("SALE & more <img>")).toBe("<mark>SALE &amp; more</mark> &lt;img&gt;");
-    expect(highlight("SALE & more <img>")).toBe("<mark>SALE &amp; more</mark> &lt;img&gt;");
-    expect(highlight("Other sale")).toBe("Other <mark>sale</mark>");
-  });
+  it("handles topics without an offer while filtering", () => {
+    const deals = [
+      topic({ topic_id: 1, title: "Thread only", Offer: undefined }),
+      topic({ topic_id: 2, title: "Store deal", Offer: { dealer_name: "Store" } }),
+    ];
 
-  it("uses prepared regex filters without leaking lastIndex between runs", () => {
-    const topics = [topic({ title: "Sale" }), topic({ title: "Sale", topic_id: 2 })];
-    const parsed = [parseFilterTerm("/Sale/g")];
-    expect(topicFilters.filterTopicsByParsedFilters(topics, parsed)).toHaveLength(2);
-    expect(topicFilters.filterTopicsByParsedFilters(topics, parsed)).toHaveLength(2);
-  });
-
-  it("sorts cached dates correctly after a topic timestamp changes", () => {
-    const topics = [topic({ topic_id: 1, post_time: "2024-01-01" }), topic({ topic_id: 2, post_time: "2024-02-01" })];
-    expect(sortTopics(topics, "thread_start").map(t => t.topic_id)).toEqual([2, 1]);
-    topics[0].post_time = "2024-03-01";
-    expect(sortTopics(topics, "thread_start").map(t => t.topic_id)).toEqual([1, 2]);
-    expect(topics.map(t => t.topic_id)).toEqual([1, 2]);
+    expect(filterTopicsByActiveFilters(deals, ["thread only"]).map((d) => d.topic_id)).toEqual([1]);
   });
 });

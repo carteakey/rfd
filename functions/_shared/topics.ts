@@ -4,7 +4,8 @@ const EXPIRY_CHECK_CURSOR_KEY = "expiry-check-cursor";
 const RFD_FORUM_BASE = "https://forums.redflagdeals.com";
 const DEFAULT_REDIRECTS_URL = "https://raw.githubusercontent.com/davegallant/rfd-redirect-stripper/main/redirects.json";
 const DEALS_FETCH_CONCURRENCY = 5;
-const REFRESHED_HOT_DEALS_PAGE_COUNT = 3;
+const DEFAULT_REFRESHED_HOT_DEALS_PAGE_COUNT = 3;
+const MAX_REFRESHED_HOT_DEALS_PAGE_COUNT = 25;
 const REFRESHED_EXPIRED_DEALS_PAGE_COUNT = 6;
 const MAX_STORED_TOPIC_COUNT = 1000;
 const EXPIRY_CHECK_BATCH_SIZE = 20;
@@ -18,6 +19,7 @@ export interface Env {
     put(key: string, value: string): Promise<void>;
   };
   RFD_BASE_URL?: string;
+  RFD_REFRESH_PAGE_COUNT?: string;
   REDIRECTS_URL?: string;
 }
 
@@ -93,12 +95,21 @@ export async function readRefreshStatusJson(env: Env): Promise<string> {
   });
 }
 
+export function getRefreshPageCount(env: Env): number {
+  const configured = Number.parseInt(env.RFD_REFRESH_PAGE_COUNT ?? "", 10);
+  if (!Number.isInteger(configured) || configured <= 0) {
+    return DEFAULT_REFRESHED_HOT_DEALS_PAGE_COUNT;
+  }
+  return Math.min(configured, MAX_REFRESHED_HOT_DEALS_PAGE_COUNT);
+}
+
 export async function refreshTopics(env: Env): Promise<Topic[]> {
   const attemptedAt = new Date().toISOString();
-  const hotDeals = await getDeals(env, 9, 1, REFRESHED_HOT_DEALS_PAGE_COUNT + 1);
+  const pageCount = getRefreshPageCount(env);
+  const hotDeals = await getDeals(env, 9, 1, pageCount + 1);
   let refreshedTopics = hotDeals.topics;
 
-  if (refreshedTopics.length === 0 && hotDeals.failedPages === REFRESHED_HOT_DEALS_PAGE_COUNT) {
+  if (refreshedTopics.length === 0 && hotDeals.failedPages === pageCount) {
     const existingTopics = await readTopics(env);
     const previousStatus = await readRefreshStatus(env);
     const error = "all hot-deals pages failed";

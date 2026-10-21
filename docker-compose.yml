@@ -11,6 +11,7 @@ services:
     environment:
       REFRESH_SECRET: "${RFD_REFRESH_SECRET:-local}"
       RFD_BASE_URL: "${RFD_BASE_URL:-https://forums.redflagdeals.com}"
+      RFD_REFRESH_PAGE_COUNT: "${RFD_REFRESH_PAGE_COUNT:-25}"
       REDIRECTS_URL: "${REDIRECTS_URL:-https://raw.githubusercontent.com/davegallant/rfd-redirect-stripper/main/redirects.json}"
     volumes:
       - rfd-state:/var/lib/rfd

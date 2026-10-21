@@ -18,6 +18,18 @@
             <td>Cycle sort method</td>
           </tr>
           <tr>
+            <td><strong>Table headers</strong></td>
+            <td>Sort by column</td>
+          </tr>
+          <tr>
+            <td><strong>Status</strong></td>
+            <td>Fresh ≤24h · Active ≤7d · Aging ≤30d · Stale &gt;30d</td>
+          </tr>
+          <tr>
+            <td><strong>Archive icon</strong></td>
+            <td>Hide or restore an individual deal</td>
+          </tr>
+          <tr>
             <td><strong>t</strong></td>
             <td>Toggle theme</td>
           </tr>
@@ -32,14 +44,6 @@
           <tr>
             <td><strong>/</strong></td>
             <td>Filter deals</td>
-          </tr>
-          <tr>
-            <td><strong>i</strong></td>
-            <td>This panel</td>
-          </tr>
-          <tr>
-            <td><strong>g</strong></td>
-            <td>Settings</td>
           </tr>
         </tbody>
       </table>
@@ -90,11 +94,11 @@ export default {
 .info-panel {
   background: var(--bg-secondary);
   color: var(--text-primary);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 20px;
-  max-width: 25rem;
+  max-width: 400px;
   width: 90%;
-  box-shadow: 0 8px 28px var(--shadow-medium);
+  box-shadow: 0 4px 24px var(--shadow-medium);
   border: 1px solid var(--border-color-light);
   text-align: center;
 }
@@ -105,13 +109,13 @@ export default {
 
 .version {
   margin-top: 8px;
-  font-size: 0.8125rem;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
 .html-alt {
   margin: 12px 0 0;
-  font-size: 0.875rem;
+  font-size: 14px;
 }
 
 .info-panel .shortcuts-table {
@@ -139,11 +143,11 @@ export default {
   background-color: var(--accent);
   color: var(--score-positive-text);
   border: none;
-  border-radius: 10px;
+  border-radius: 4px;
   cursor: pointer;
   font-family: inherit;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 14px;
   transition: background-color 0.2s ease;
 }
 
