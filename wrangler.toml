@@ -7,5 +7,5 @@ pages_build_output_dir = "dist"
 #   npx wrangler kv namespace create TOPICS_KV --preview
 [[kv_namespaces]]
 binding = "TOPICS_KV"
-id = "6b6f2586181b44b4a51ab6457fbfef0c"
-preview_id = "0c38926cedc84133bd80f5c291ea34fa"
+id = "043949de977b48b7bfab0c4857d11a43"
+preview_id = "757af78ce8ac4b279fccfbaac07968cf"
